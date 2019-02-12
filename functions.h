@@ -21,6 +21,8 @@ void getNormCornerStrengthMatrix(const Mat &grad_x, const Mat &grad_y, Mat &c_H_
 
 void localMaxSuppression(const Mat &src, Mat &dst, int size, float threshold);
 
+void adaptiveNonMaxSuppression(const vector<KeyPoint> &kpt_vec, vector<KeyPoint> &spatial_kpt_vec, int limit);
+
 void getKeyPoints(vector<KeyPoint> &kpt_vec, const Mat &c_H, float threshold);
 
 void getKeypointsOrientations(const Mat &img_orig, int ksize,

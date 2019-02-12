@@ -112,6 +112,62 @@ void localMaxSuppression(const Mat &src, Mat &dst, int size, float threshold) {
     dst = result;
 }
 
+void adaptiveNonMaxSuppression(const vector<KeyPoint> &kpt_vec, vector<KeyPoint> &spatial_kpt_vec, int limit) {
+
+    int kpt_count = kpt_vec.size();
+    vector<double> local_max_vec(kpt_count);
+    vector<double> radius_vec(kpt_count, INFINITY);
+    double max = 0;
+
+
+    for (int i = 0; i < kpt_count; ++i) {
+        double c = kpt_vec[i].response;
+        if (c > max) max = c;
+        local_max_vec[i] = 0.9 * c;
+    }
+    double c_max = 0.9 * max;
+
+
+    for(int i=0; i<kpt_count; ++i){
+        double c = kpt_vec[i].response;
+        KeyPoint kpt = kpt_vec[i];
+        double radius = radius_vec[i];
+
+        if(c > c_max) {
+            radius = INFINITY;
+        }else{
+            for(int j = 0; j< kpt_count; ++j){
+                if(local_max_vec[j] < c){
+                    KeyPoint kpt2 = kpt_vec[j];
+                    double distance = norm(kpt2.pt - kpt.pt);
+                    if(distance < radius)
+                        radius = distance;
+                }
+            }
+        }
+    }
+
+
+    //sort index
+    vector<int> idx_sorted_vec(radius_vec.size());
+    for(int i = 0; i< radius_vec.size(); ++i){
+        idx_sorted_vec[i] = i;
+    }
+
+    sort(idx_sorted_vec.begin(), idx_sorted_vec.end(),
+         [&radius_vec](int i, int j){ return (radius_vec[i] > radius_vec[j]);});
+
+    int count = 0;
+    if(limit < idx_sorted_vec.size()) count = limit;
+    else count = idx_sorted_vec.size();
+
+    for(int i = 0; i< count; ++i){
+        int idx = idx_sorted_vec[i];
+        spatial_kpt_vec.push_back(kpt_vec[idx]);
+    }
+}
+
+
 void getKeyPoints(vector<KeyPoint> &kpt_vec, const Mat &c_H, float threshold) {
     int rows = c_H.rows;
     int cols = c_H.cols;
@@ -392,26 +448,29 @@ void getImageFeatureDescriptors(const Mat &img_orig, vector<vector<float>> &feat
 
     //suppress the corner strength matrix
     Mat c_H_suppressed;
-    localMaxSuppression(c_H_norm, c_H_suppressed, 5, threshold);
+    localMaxSuppression(c_H_norm, c_H_suppressed, 3, threshold);
 
     //get key points
     getKeyPoints(kpt_vec, c_H_suppressed, threshold);
 
+    vector<KeyPoint> spatial_kpt_vec;
+    adaptiveNonMaxSuppression(kpt_vec, spatial_kpt_vec, 500);
+
     //get oriented key points
-    getKeypointsOrientations(img_orig, ksize, kpt_vec, orient_kpt_vec, orient_wd_size);
+    getKeypointsOrientations(img_orig, ksize, spatial_kpt_vec, orient_kpt_vec, orient_wd_size);
 
     //get feature descriptor for each oriented key points
     getFeatureDescriptor(img_orig, orient_kpt_vec, feature_descriptor_list);
 
     //draw key points
     Mat img_kpts;
-    drawKeypoints(img_orig, kpt_vec, img_kpts);
+    drawKeypoints(img_orig, spatial_kpt_vec, img_kpts);
     imshow("Key Points", img_kpts);
 
-    //draw oriented key points
-    Mat img_orient_kpts;
-    drawKeypoints(img_orig, orient_kpt_vec, img_orient_kpts, Scalar::all(-1), DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
-    imshow("Oriented Key Points", img_orient_kpts);
+//    //draw oriented key points
+//    Mat img_orient_kpts;
+//    drawKeypoints(img_orig, orient_kpt_vec, img_orient_kpts, Scalar::all(-1), DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
+//    imshow("Oriented Key Points", img_orient_kpts);
 
 
 }
@@ -421,15 +480,15 @@ void findMatchKeyPoints(const vector<vector<float>> &f_list1, const vector<vecto
                         vector<KeyPoint> &match_points_vec1, vector<KeyPoint> &match_points_vec2,
                         vector<DMatch> &dMatches) {
 
-    int kpt_count1 = f_list1.size();
-    int kpt_count2 = f_list2.size();
+    size_t kpt_count1 = f_list1.size();
+    size_t kpt_count2 = f_list2.size();
 //
 //
-    float threshold = 9.5;
+    float threshold = 11;
     float d;
     for (int i = 0; i < kpt_count1; ++i) {
         vector<float> buffer;   //store the possible matches's distance
-        vector<float> idx_buff; //store the corresponding match's index
+        vector<int> idx_buff; //store the corresponding match's index
         for (int j = 0; j < kpt_count2; ++j) {
             d = getFeatureDistance(f_list1[i], f_list2[j]);
             if (d < threshold) {
@@ -472,7 +531,7 @@ void findMatchKeyPoints(const vector<vector<float>> &f_list1, const vector<vecto
 
         //keep the max and it's corresponding index
         DMatch dMatch;
-        if(ratio < 0.8){
+        if(ratio < 0.7){
             dMatch = DMatch(i, min_idx, 3);
             dMatches.push_back(dMatch);
 

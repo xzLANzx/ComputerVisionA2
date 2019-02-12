@@ -8,7 +8,7 @@ int main(int argc, char *argv[]) {
 //    int orient_wd_size = 1.5 * sigma;       //need to make sure orient_wd_size is odd
 
     float threshold = 80.0f;
-    int ksize = 7; //orient_wd_size = 21
+    int ksize = 3; //orient_wd_size = 21
     float sigma = 3;
     int orient_wd_size = 21;       //need to make sure orient_wd_size is odd
 
@@ -16,12 +16,14 @@ int main(int argc, char *argv[]) {
     //load image into Matrix
     string img_name(argv[1]);    //argv[1] names of the image
     //string f_name1 = "../image_set/" + img_name;
-    //string f_name1 = "../image_set/img1.ppm";
-    string f_name1 = "../image_set/Yosemite1.jpg";
-    Mat img_orig1 = imread(f_name1, IMREAD_COLOR);
 
-    //string f_name2 = "../image_set/img2.ppm";
-    string f_name2 = "../image_set/Yosemite2.jpg";
+    string f_name1 = "../image_set/img1.ppm";
+    string f_name2 = "../image_set/img2.ppm";
+
+//    string f_name1 = "../image_set/Yosemite1.jpg";
+//    string f_name2 = "../image_set/Yosemite2.jpg";
+
+    Mat img_orig1 = imread(f_name1, IMREAD_COLOR);
     Mat img_orig2 = imread(f_name2, IMREAD_COLOR);
 
     vector<vector<float>> feature_descriptor_list1;
