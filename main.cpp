@@ -6,8 +6,21 @@ int main(int argc, char *argv[]) {
     int orient_wd_size = 21;        //need to make sure orient_wd_size is odd
 
     //load image into Matrix
-    int mode = atoi(argv[1]);       //argv[1]: select the image you want to compare
-    mode = 2;
+    int mode =0;
+
+    cout<<"Please choose an option: "<<endl;
+    cout<<"1. View Yosemite Matching Result (Contrast Invariance). "<<endl;
+    cout<<"2. View Yosemite Matching Result (Rotation Invariance). "<<endl;
+    cout<<"3. View Sword Turkey Matching Result. "<<endl;
+
+    cin>>mode;
+    while(mode<1 || mode >3){
+        cout<<"Please choose a valid option: "<<endl;
+        cout<<"1. View Yosemite Matching Result (Contrast Invariance). "<<endl;
+        cout<<"2. View Yosemite Matching Result (Rotation Invariance). "<<endl;
+        cout<<"3. View Sword Turkey Matching Result. "<<endl;
+    }
+
     Mat img_orig1, img_orig2;
     load(mode, img_orig1, img_orig2);
 
@@ -31,7 +44,7 @@ int main(int argc, char *argv[]) {
     cout << "img1 key points count: " << feature_descriptor_list1.size() << endl;
     cout << "img2 key points count: " << feature_descriptor_list2.size() << endl;
 
-    vector<DMatch> dMatches = findMatchKeyPoints(feature_descriptor_list1, feature_descriptor_list2);
+    vector<DMatch> dMatches = findMatchKeyPoints(feature_descriptor_list1, feature_descriptor_list2, mode);
     cout << "Matches count: " << dMatches.size() << endl;
 
     //draw matches

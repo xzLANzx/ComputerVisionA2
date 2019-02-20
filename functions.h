@@ -37,6 +37,6 @@ vector<vector<float>> getFeatureDescriptorsList(const Mat &img, const vector<Key
 
 vector<vector<float>> getAllKeyPointsFeatureDescriptors(const Mat &img_orig, vector<KeyPoint> &orient_kpt_vec, float threshold, int wd_size);
 
-vector<DMatch> findMatchKeyPoints(const vector<vector<float>> &f_list1, const vector<vector<float>> &f_list2);
+vector<DMatch> findMatchKeyPoints(const vector<vector<float>> &f_list1, const vector<vector<float>> &f_list2, int mode);
 
 #endif //A2_FUNCTIONS_H

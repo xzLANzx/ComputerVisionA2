@@ -3,24 +3,70 @@
 //
 #include "functions.h"
 
-void load(int mode, Mat &img_orig1, Mat &img_orig2)
-{
-    //Default: killing turkey
-    //mode 1: killing turkey
-    //mode 2: Yosemite
+void load(int mode, Mat &img_orig1, Mat &img_orig2) {
+    //Default mode 1: yosemite contrast invariance
+    //mode 2: yosemite rotation invariance
+    //mode 3: killing turkey
 
     string f_name1 = "../image_set/img1.ppm";
     string f_name2 = "../image_set/img2.ppm";
-    if(mode == 1){
-        f_name1 = "../image_set/img1.ppm";
-        f_name2 = "../image_set/img2.ppm";
-    }else if(mode == 2){
+
+    if (mode == 1) {
+
         f_name1 = "../image_set/Yosemite1.jpg";
         f_name2 = "../image_set/Yosemite2.jpg";
+
+        img_orig1 = imread(f_name1, IMREAD_COLOR);
+        img_orig2 = imread(f_name2, IMREAD_COLOR);
+
+    } else if (mode == 2) {
+
+        f_name1 = "../image_set/Yosemite1.jpg";
+        f_name2 = "../image_set/Yosemite1_rotation.jpg";
+
+        img_orig1 = imread(f_name1, IMREAD_COLOR);
+        img_orig2 = imread(f_name2, IMREAD_COLOR);
+
+    } else if (mode == 3) {
+
+
+        f_name1 = "../image_set/img1.ppm";
+        f_name2 = "../image_set/img2.ppm";
+
+        img_orig1 = imread(f_name1, IMREAD_COLOR);
+        img_orig2 = imread(f_name2, IMREAD_COLOR);
+
+//        // rotation factor
+//        float theta = 15;
+//        theta = theta * PI / 180;
+//        float si = sin(theta);
+//        float co = cos(theta);
+//
+//        // rotation parameter
+//        float rot[2][2] = { {co, -1*si},
+//                            {si, co} };
+//
+//        Mat rotImg = Mat::zeros(img_orig2.rows, img_orig2.cols, img_orig2.type());
+//
+//        for (int y = 0; y < img_orig2.rows; y++) {
+//            for (int x = 0; x < img_orig2.cols; x++) {
+//                int x_new = rot[0][0] * x + rot[0][1] * y;
+//                int y_new = rot[1][0] * x + rot[1][1] * y;
+//
+//                // make sure it's not going out of boundary
+//                if (x_new >= 0 && x_new < img_orig2.cols && y_new >=0 && y_new < img_orig2.rows) {
+//                    rotImg.at<Vec3b>(y_new, x_new) = img_orig2.at<Vec3b>(y, x);
+//                }
+//            }
+//        }
+//
+//        img_orig2.release();
+//        img_orig2 = rotImg;
+    } else {
+        cout << "Please select a valid option. " << endl;
     }
 
-    img_orig1 = imread(f_name1, IMREAD_COLOR);
-    img_orig2 = imread(f_name2, IMREAD_COLOR);
+
 }
 
 void getGradient(const Mat &img, Mat &grad_x, Mat &grad_y) {
@@ -31,7 +77,7 @@ void getGradient(const Mat &img, Mat &grad_x, Mat &grad_y) {
     //default settings
     int scale = 1;
     int delta = 0;
-    int ddepth = CV_32FC1;
+    auto ddepth = CV_32FC1;
 
     //Use Sobel to calculate the derivatives from an image.
     //Use Scharr to calculate a more accurate derivative for a kernel of size 3 * 3
@@ -71,9 +117,9 @@ void getNormCornerStrengthMatrix(const Mat &grad_x, const Mat &grad_y, Mat &c_H_
             float h_mat_data[4] = {h0, h1, h2, h3};
             Mat h_mat = Mat(2, 2, CV_32F, h_mat_data);
 
-            float det = determinant(h_mat);
-            float tra = trace(h_mat).val[0];
-            float h_operator = det / tra;
+            double det = determinant(h_mat);
+            double tra = trace(h_mat).val[0];
+            double h_operator = det / tra;
 
             c_H.at<float>(i, j) = h_operator;
         }
@@ -123,7 +169,7 @@ void localMaxSuppression(const Mat &src, Mat &dst, int size, float threshold) {
                             break;
                         }
                     }
-                    if (is_max == false) break;
+                    if (!is_max) break;
                 }
             }
         }
@@ -132,18 +178,18 @@ void localMaxSuppression(const Mat &src, Mat &dst, int size, float threshold) {
     dst = result;
 }
 
-vector<KeyPoint> ANMS(const vector<KeyPoint> &kpt_vec, int limit){
+vector<KeyPoint> ANMS(const vector<KeyPoint> &kpt_vec, int limit) {
 
     vector<KeyPoint> spatial_kpt_vec;
-    int kpt_count = kpt_vec.size();
+    size_t kpt_count = kpt_vec.size();
     vector<double> radius_vec(kpt_count, INFINITY);         //all key points' initial radius
 
-    for(int i=0; i<kpt_count; ++i){
+    for (int i = 0; i < kpt_count; ++i) {
         KeyPoint x_i = kpt_vec[i];
-        for(int j=0; j<kpt_count; ++j){
-            if(j != i){
+        for (int j = 0; j < kpt_count; ++j) {
+            if (j != i) {
                 KeyPoint x_j = kpt_vec[j];
-                if((0.9 * x_j.response) > x_i.response){
+                if ((0.9 * x_j.response) > x_i.response) {
                     radius_vec[i] = norm(x_i.pt - x_j.pt);
                 }
             }
@@ -152,16 +198,16 @@ vector<KeyPoint> ANMS(const vector<KeyPoint> &kpt_vec, int limit){
 
     //sort {radius, index} in descending order
     vector<int> idx_vec(radius_vec.size());
-    for(int i = 0; i< radius_vec.size(); ++i){
+    for (int i = 0; i < radius_vec.size(); ++i) {
         idx_vec[i] = i;
     }
 
     sort(idx_vec.begin(), idx_vec.end(),
-         [&radius_vec](int i, int j){ return (radius_vec[i] > radius_vec[j]);});
+         [&radius_vec](int i, int j) { return (radius_vec[i] > radius_vec[j]); });
 
-    for(int i = 0; i< kpt_count; ++i){
+    for (int i = 0; i < kpt_count; ++i) {
         int idx = idx_vec[i];
-        if(radius_vec[i] > limit)
+        if (radius_vec[i] > limit)
             spatial_kpt_vec.push_back(kpt_vec[idx]);
         else
             break;
@@ -171,7 +217,7 @@ vector<KeyPoint> ANMS(const vector<KeyPoint> &kpt_vec, int limit){
 }
 
 
-vector<KeyPoint> getKeyPoints(const Mat &c_H, float threshold){
+vector<KeyPoint> getKeyPoints(const Mat &c_H, float threshold) {
 
     vector<KeyPoint> kpt_vec;
 
@@ -194,7 +240,7 @@ vector<KeyPoint> getKeyPoints(const Mat &c_H, float threshold){
     return kpt_vec;
 }
 
-vector<KeyPoint> getOrientedKeyPoints(const Mat &img_orig, const vector<KeyPoint> &kpt_vec, int wd_size){
+vector<KeyPoint> getOrientedKeyPoints(const Mat &img_orig, const vector<KeyPoint> &kpt_vec, int wd_size) {
 
     //convert to gray scale
     Mat img_gray;
@@ -209,7 +255,7 @@ vector<KeyPoint> getOrientedKeyPoints(const Mat &img_orig, const vector<KeyPoint
     vector<KeyPoint> orient_kpt_vec;
     vector<float> orient_hist;
     orient_hist.assign(36, 0);
-    int kpt_count = kpt_vec.size();
+    size_t kpt_count = kpt_vec.size();
     int rows = img_orig.rows;
     int cols = img_orig.cols;
     int left, right, top, bottom;
@@ -307,8 +353,6 @@ vector<vector<float>> getFeatureDescriptorsList(const Mat &img, const vector<Key
         Mat magn_window = Mat(16, 16, CV_32F);
         Mat orient_window = Mat(16, 16, CV_32F);
 
-        int wi = 0;
-        int wj = 0;
 
         float pt_magn, theta;
 
@@ -342,9 +386,7 @@ vector<vector<float>> getFeatureDescriptorsList(const Mat &img, const vector<Key
                 magn_window.at<float>(m - (top + 1), n - (left + 1)) = pt_magn;
                 orient_window.at<float>(m - (top + 1), n - (left + 1)) = theta;
 
-                wj++;
             }
-            wi++;
         }
 
 
@@ -409,7 +451,8 @@ vector<vector<float>> getFeatureDescriptorsList(const Mat &img, const vector<Key
                     if (angle == 360) angle = 0;
 
                     int sector_idx = (int) (angle / 45);
-                    if(sector_idx >= 8 || sector_idx < 0) cout<<"Error!"<<sector_idx<<", Angle: "<<angle<<endl;
+                    if (sector_idx >= 8 || sector_idx < 0)
+                        cout << "Error!" << sector_idx << ", Angle: " << angle << endl;
                     hist[sector_idx] += magn;
                     hist_list[bin_idx] = hist;
                 }
@@ -428,8 +471,8 @@ vector<vector<float>> getFeatureDescriptorsList(const Mat &img, const vector<Key
         normalize(feature_descriptor, feature_descriptor_norm, 1.0, 0.0, NORM_L2);
 
         //clamp to 0.2
-        for(int f = 0; f< feature_descriptor_norm.size(); f++){
-            if(feature_descriptor_norm[f] >= 0.2) feature_descriptor_norm[f] = 0.2;
+        for (int f = 0; f < feature_descriptor_norm.size(); f++) {
+            if (feature_descriptor_norm[f] >= 0.2) feature_descriptor_norm[f] = 0.2;
         }
 
         //normalize again
@@ -448,7 +491,8 @@ float getFeatureDistance(vector<float> f1, vector<float> f2) {
     return distance;
 }
 
-vector<vector<float>> getAllKeyPointsFeatureDescriptors(const Mat &img_orig, vector<KeyPoint> &orient_kpt_vec, float threshold, int wd_size){
+vector<vector<float>>
+getAllKeyPointsFeatureDescriptors(const Mat &img_orig, vector<KeyPoint> &orient_kpt_vec, float threshold, int wd_size) {
     //compute Ix, Iy
     Mat grad_x, grad_y;
     getGradient(img_orig, grad_x, grad_y);
@@ -466,11 +510,11 @@ vector<vector<float>> getAllKeyPointsFeatureDescriptors(const Mat &img_orig, vec
 
     //Adaptive Non Maximum Suppression
     vector<KeyPoint> spatial_kpt_vec = ANMS(kpt_vec, 25);
-    cout<<"Spatial Key Points Count: "<<spatial_kpt_vec.size()<<endl;
+    cout << "Spatial Key Points Count: " << spatial_kpt_vec.size() << endl;
 
     //get oriented keypoints
     orient_kpt_vec = getOrientedKeyPoints(img_orig, spatial_kpt_vec, wd_size);
-    cout<<"Oriented Key Points Count: "<<orient_kpt_vec.size()<<endl<<endl;
+    cout << "Oriented Key Points Count: " << orient_kpt_vec.size() << endl << endl;
 
     //vector of all keypoints' feature descriptors
     vector<vector<float>> feature_descriptor_vec = getFeatureDescriptorsList(img_orig, orient_kpt_vec);
@@ -485,14 +529,20 @@ vector<vector<float>> getAllKeyPointsFeatureDescriptors(const Mat &img_orig, vec
     return feature_descriptor_vec;
 }
 
-vector<DMatch> findMatchKeyPoints(const vector<vector<float>> &f_list1, const vector<vector<float>> &f_list2) {
+vector<DMatch> findMatchKeyPoints(const vector<vector<float>> &f_list1, const vector<vector<float>> &f_list2, int mode) {
 
     vector<DMatch> dMatches;
     size_t kpt_count1 = f_list1.size();
     size_t kpt_count2 = f_list2.size();
 
 
-    float threshold = 12;       //threshold of the two feature descriptors' distance
+    //threshold of the two feature descriptors' distance
+    float threshold;
+    if(mode == 1 || mode == 2)
+        threshold = 12;
+    else if(mode == 3)
+        threshold = 13;
+
     float d = INFINITY;
 
     for (int i = 0; i < kpt_count1; ++i) {
@@ -534,13 +584,19 @@ vector<DMatch> findMatchKeyPoints(const vector<vector<float>> &f_list1, const ve
         //compute ratio
         float ratio = INFINITY;
         if ((min_idx >= 0) && (sec_min_idx >= 0)) {
-            if(sec_min > 0) ratio = min / sec_min;
+            if (sec_min > 0) ratio = min / sec_min;
         }
 
         //keep the max and it's corresponding index
         DMatch dMatch;
 
-        if(ratio < 0.78){
+        float ratio_threshold = 0;
+        if(mode == 1 || mode == 2)
+            ratio_threshold = 0.78;
+        else if(mode == 3)
+            ratio_threshold = 0.57;
+
+        if (ratio < ratio_threshold) {
             dMatch = DMatch(i, min_idx, 3);
             dMatches.push_back(dMatch);
         }
